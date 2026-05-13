@@ -10,6 +10,7 @@ import '../../../features/document/delete_document.dart';
 import '../../../features/document/toggle_pin.dart';
 import '../../../features/document/indent_document.dart';
 import '../../../features/document/outdent_document.dart';
+import '../../../features/document/export_document.dart';
 
 
 class SidePanel extends StatelessWidget {
@@ -211,6 +212,15 @@ class _DocumentsList extends StatelessWidget {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        IconButton(
+                          icon: Icon(Icons.file_download, size: 20, color: isDarkMode ? Colors.white : const Color(0xFFFFEDEB),),
+                          onPressed: () => ExportDocumentFeature.show(context, doc),
+                          tooltip: 'Экспорт',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 4),
+
                         GestureDetector(
                           onTap: () {},
                           child: Checkbox(
@@ -401,6 +411,15 @@ class _DocumentsList extends StatelessWidget {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  IconButton(
+                    icon: Icon(Icons.file_download, size: 20, color: isDarkMode ? Colors.white : const Color(0xFFFFEDEB),),
+                    onPressed: () => ExportDocumentFeature.show(context, doc),
+                    tooltip: 'Экспорт',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 4),
+
                   GestureDetector(
                     onTap: () {},
                     child: Checkbox(
@@ -503,6 +522,15 @@ class _DocumentsGraph extends StatelessWidget {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        IconButton(
+                          icon: Icon(Icons.file_download, size: 20, color: isDarkMode ? Colors.white : const Color(0xFFFFEDEB),),
+                          onPressed: () => ExportDocumentFeature.show(context, doc),
+                          tooltip: 'Экспорт',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 4),
+
                         GestureDetector(
                           onTap: () {},
                           child: Checkbox(

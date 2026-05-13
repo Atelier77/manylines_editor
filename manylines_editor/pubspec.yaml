@@ -14,6 +14,9 @@ dependencies:
   dart_quill_delta: ^10.8.3
   provider: ^6.1.2
   flutter_riverpod: ^2.4.9
+  pdf: ^3.10.8
+  printing: ^5.11.1
+  path_provider: ^2.1.1
   flutter_localizations:
     sdk: flutter
   cupertino_icons: ^1.0.8
@@ -38,4 +41,9 @@ flutter:
     - family: LT Remark
       fonts:
         - asset: assets/fonts/LTRemark-Regular.otf
+          weight: 700
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+        - asset: assets/fonts/NotoSans-Bold.ttf
           weight: 700
