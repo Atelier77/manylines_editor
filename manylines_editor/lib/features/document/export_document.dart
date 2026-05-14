@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -82,7 +81,7 @@ class ExportDocumentFeature {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ Документ экспортирован: ${doc.name}.pdf'),
+            content: Text('Документ экспортирован: ${doc.name}.pdf'),
             backgroundColor: const Color(0xFF16DB93),
             duration: Duration(seconds: 3),
           ),

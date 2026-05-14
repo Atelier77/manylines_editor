@@ -1,5 +1,3 @@
-// lib/features/document/delete_document.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../entities/document/document.dart';
@@ -8,7 +6,6 @@ import '../../entities/project/project_repository.dart';
 import '../../entities/setting/setting_repository.dart';
 
 class DeleteDocumentFeature {
-  // ✅ Показ диалога подтверждения
   static void showConfirmation(BuildContext context, AppDocument doc) {
     final isDarkMode = context.read<SettingRepository>().isDarkMode;
     
@@ -56,18 +53,14 @@ class DeleteDocumentFeature {
     );
   }
 
-  // ✅ Удаление документа
   static void execute(BuildContext context, AppDocument doc) {
     final projectRepo = Provider.of<ProjectRepository>(context, listen: false);
     final documentRepo = Provider.of<DocumentRepository>(context, listen: false);
     
-    // Очищаем контроллер
     documentRepo.deleteDocumentControllers(doc.id);
     
-    // Удаляем из проекта
     projectRepo.deleteDocument(doc);
     
-    // Закрываем редактор если открыт
     documentRepo.closeEditorIfOpen(doc.id);
   }
 }

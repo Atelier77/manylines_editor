@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:provider/provider.dart';
@@ -24,6 +25,11 @@ class QuillEditorWrapper extends StatefulWidget {
 class _QuillEditorWrapperState extends State<QuillEditorWrapper> {
   quill.QuillController? _controller;
   bool _isApplyingHighlights = false;
+  bool _isDisposed = false;
+  Timer? _highlightDebounceTimer;
+  
+  ProjectRepository? _projectRepo;
+  SettingRepository? _settingRepo;
 
   @override
   void initState() {
@@ -34,70 +40,121 @@ class _QuillEditorWrapperState extends State<QuillEditorWrapper> {
   @override
   void didUpdateWidget(QuillEditorWrapper oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.document.id != widget.document.id) {
+    if (oldWidget.document.id != widget.document.id && !_isDisposed) {
       _initializeController();
     }
   }
 
   void _initializeController() {
+    if (_isDisposed) return;
+    
     final repo = context.read<DocumentRepository>();
     _controller = repo.getOrCreateController(widget.document);
     
+    _projectRepo = context.read<ProjectRepository>();
+    _settingRepo = context.read<SettingRepository>();
+    
+    _settingRepo?.addListener(_onThemeChanged);
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _controller != null) {
+      if (mounted && !_isDisposed && _controller != null) {
         _applyGlossaryHighlights();
       }
     });
     
-    context.read<ProjectRepository>().addListener(_onGlossaryChanged);
-  }
-
-  void _onGlossaryChanged() {
-    if (_controller != null && mounted && !_isApplyingHighlights) {
-      _applyGlossaryHighlights();
+    if (!_isDisposed) {
+      _projectRepo?.addListener(_onGlossaryChanged);
     }
   }
 
+  void _onThemeChanged() {
+    if (_isDisposed || !mounted || _controller == null) return;
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_isDisposed && _controller != null) {
+        _applyGlossaryHighlights();
+      }
+    });
+  }
+
+  void _onGlossaryChanged() {
+    if (_isDisposed || !mounted || _controller == null || _isApplyingHighlights) {
+      return;
+    }
+    
+    _highlightDebounceTimer?.cancel();
+    _highlightDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      if (mounted && !_isDisposed && _controller != null) {
+        _applyGlossaryHighlights();
+      }
+    });
+  }
+
   void _applyGlossaryHighlights() {
-    if (_isApplyingHighlights || _controller == null) return;
+    if (_isApplyingHighlights || _controller == null || _isDisposed || !mounted) return;
     
     _isApplyingHighlights = true;
     
     try {
       GlossaryHighlightFeature.clearHighlights(_controller!);
       
-      final projectRepo = context.read<ProjectRepository>();
-      GlossaryHighlightFeature.applyHighlights(_controller!, projectRepo);
+      final projectRepo = _projectRepo;
+      final settingRepo = _settingRepo;
+      
+      if (projectRepo == null || settingRepo == null) return;
+      
+      final isDarkMode = settingRepo.isDarkMode;
+            
+      GlossaryHighlightFeature.applyHighlights(_controller!, projectRepo, isDarkMode);
+    } catch (e) {
+      debugPrint('Ошибка подсветки глоссария: $e');
     } finally {
       _isApplyingHighlights = false;
     }
   }
 
-  void _handleEditorTap(TapUpDetails details) {
-    if (_controller == null) return;
+  void _handleDoubleTap() {
+    if (_isDisposed || _controller == null || !mounted) return;
     
-    final position = _controller!.selection.baseOffset;
-    
-    final projectRepo = context.read<ProjectRepository>();
-    GlossaryHighlightFeature.handleTermTap(
-      _controller!,
-      position,
-      projectRepo,
-    );
+    try {
+      final position = _controller!.selection.baseOffset;
+      final projectRepo = _projectRepo;
+      
+      if (projectRepo == null) return;
+      
+      final opened = GlossaryHighlightFeature.handleTermTap(
+        _controller!,
+        position,
+        projectRepo,
+      );
+      
+    } catch (e) {
+      debugPrint('Ошибка обработки двойного клика: $e');
+    }
   }
 
   @override
   void dispose() {
-    if (mounted) {
-      context.read<ProjectRepository>().removeListener(_onGlossaryChanged);
+    _isDisposed = true;
+    _highlightDebounceTimer?.cancel();
+    
+    try {
+      _projectRepo?.removeListener(_onGlossaryChanged);
+      _settingRepo?.removeListener(_onThemeChanged);
+    } catch (e) {
+      debugPrint('Ошибка удаления слушателя: $e');
     }
+    
     _controller = null;
+    _projectRepo = null;
+    _settingRepo = null;
+    
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null) {
+    if (_controller == null || _isDisposed) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -106,11 +163,7 @@ class _QuillEditorWrapperState extends State<QuillEditorWrapper> {
     return MouseRegion(
       cursor: SystemMouseCursors.text,
       child: GestureDetector(
-        onTapUp: _handleEditorTap,
-        onPanEnd: (details) {
-          if (details.velocity.pixelsPerSecond.dx < -500) {
-          }
-        },
+        onDoubleTap: _handleDoubleTap,
         child: Column(
           children: [
             Row(
@@ -135,7 +188,7 @@ class _QuillEditorWrapperState extends State<QuillEditorWrapper> {
                   ),
                   child: IconButton(
                     icon: const Icon(Icons.book, size: 22),
-                    onPressed: _addSelectedToGlossary,
+                    onPressed: _isDisposed ? null : _addSelectedToGlossary,
                     tooltip: 'Добавить в глоссарий',
                     color: isDarkMode ? const Color(0xFFAB73D3) : const Color(0xFF16DB93),
                   ),
@@ -149,22 +202,7 @@ class _QuillEditorWrapperState extends State<QuillEditorWrapper> {
                 config: quill.QuillEditorConfig(
                   placeholder: 'Начните печатать...',
                   padding: const EdgeInsets.all(16),
-                  customStyleBuilder: (attribute) {
-                    if (attribute.key == quill.Attribute.link.key) {
-                      final value = attribute.value?.toString();
-                      if (value != null && value.startsWith('glossary:')) {
-
-                        return TextStyle(
-                          backgroundColor: const Color(0xFF16DB93),
-                          color: isDarkMode ? Colors.white : const Color(0xFF603D2E),
-                          decoration: TextDecoration.underline,
-                          decorationColor: const Color(0xFF16DB93),
-                          fontWeight: FontWeight.w600,
-                        );
-                      }
-                    }
-                    return const TextStyle();
-                  },
+                  enableInteractiveSelection: true,
                 ),
                 focusNode: FocusNode(),
                 scrollController: ScrollController(),
@@ -177,35 +215,42 @@ class _QuillEditorWrapperState extends State<QuillEditorWrapper> {
   }
 
   void _addSelectedToGlossary() {
-    final selectedText = _getSelectedText();
-    if (selectedText != null) {
-      final projectRepo = context.read<ProjectRepository>();
-      projectRepo.addGlossaryEntry(selectedText, '');
-      projectRepo.openGlossaryPanel();
-      
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _applyGlossaryHighlights();
-        }
-      });
+    if (_isDisposed || !mounted) return;
+    
+    try {
+      final selectedText = _getSelectedText();
+      if (selectedText != null) {
+        final projectRepo = _projectRepo;
+        if (projectRepo == null) return;
+        
+        projectRepo.addGlossaryEntry(selectedText, '');
+        projectRepo.openGlossaryPanel();
+      }
+    } catch (e) {
+      debugPrint('Ошибка добавления в глоссарий: $e');
     }
   }
 
   String? _getSelectedText() {
-    if (_controller == null) return null;
+    if (_controller == null || _isDisposed) return null;
     
-    final selection = _controller!.selection;
-    if (selection.isCollapsed) return null;
-    
-    final text = _controller!.document.toPlainText();
-    if (selection.baseOffset >= text.length || selection.extentOffset >= text.length) return null;
-    
-    final start = selection.baseOffset < selection.extentOffset 
-        ? selection.baseOffset : selection.extentOffset;
-    final end = selection.baseOffset < selection.extentOffset 
-        ? selection.extentOffset : selection.baseOffset;
-    
-    final selectedText = text.substring(start, end);
-    return selectedText.trim().isNotEmpty ? selectedText.trim() : null;
+    try {
+      final selection = _controller!.selection;
+      if (selection.isCollapsed) return null;
+      
+      final text = _controller!.document.toPlainText();
+      if (selection.baseOffset >= text.length || selection.extentOffset >= text.length) return null;
+      
+      final start = selection.baseOffset < selection.extentOffset 
+          ? selection.baseOffset : selection.extentOffset;
+      final end = selection.baseOffset < selection.extentOffset 
+          ? selection.extentOffset : selection.baseOffset;
+      
+      final selectedText = text.substring(start, end);
+      return selectedText.trim().isNotEmpty ? selectedText.trim() : null;
+    } catch (e) {
+      debugPrint('Ошибка получения текста: $e');
+      return null;
+    }
   }
 }

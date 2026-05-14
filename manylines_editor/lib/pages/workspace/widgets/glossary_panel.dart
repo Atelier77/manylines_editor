@@ -110,7 +110,7 @@ class GlossaryPanel extends StatelessWidget {
           Text('Глоссарий пуст', style: TextStyle(color: Colors.grey[600])),
           const SizedBox(height: 8),
           Text(
-            'Выделите текст и нажмите кнопку 📖',
+            'Выделите текст и нажмите кнопку',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: Colors.grey[500]),
           ),

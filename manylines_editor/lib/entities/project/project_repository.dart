@@ -206,7 +206,6 @@ class ProjectRepository extends ChangeNotifier {
     _highlightedGlossaryTermId = termId;
     notifyListeners();
     
-    // ✅ Автоматически убираем подсветку через 3 секунды
     Future.delayed(const Duration(seconds: 3), () {
       if (_highlightedGlossaryTermId == termId) {
         _highlightedGlossaryTermId = null;

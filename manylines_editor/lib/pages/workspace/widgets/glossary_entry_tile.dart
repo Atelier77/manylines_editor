@@ -41,7 +41,6 @@ class _GlossaryEntryTileState extends State<GlossaryEntryTile> {
   @override
   void didUpdateWidget(GlossaryEntryTile oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Обновляем контроллеры при изменении определений
     for (var def in widget.entry.definitions) {
       if (!_controllers.containsKey(def.id)) {
         _controllers[def.id] = TextEditingController(text: def.text);
@@ -73,7 +72,6 @@ class _GlossaryEntryTileState extends State<GlossaryEntryTile> {
       ),
       child: Column(
         children: [
-          // ✅ Заголовок термина
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             title: Row(
@@ -101,7 +99,6 @@ class _GlossaryEntryTileState extends State<GlossaryEntryTile> {
             onTap: widget.onToggleExpand,
           ),
           
-          // ✅ Список определений
           if (widget.entry.isExpanded)
             ...widget.entry.definitions.map((def) => _buildDefinitionTile(def)),
         ],
@@ -110,7 +107,7 @@ class _GlossaryEntryTileState extends State<GlossaryEntryTile> {
   }
 
   Widget _buildDefinitionTile(GlossaryDefinition def) {
-    final isCollapsed = def.isCollapsed;  // ✅ Свернуто или нет
+    final isCollapsed = def.isCollapsed;
     
     return Container(
       decoration: BoxDecoration(
@@ -140,13 +137,11 @@ class _GlossaryEntryTileState extends State<GlossaryEntryTile> {
           ),
           const SizedBox(width: 8),
           
-          // ✅ Определение
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (!isCollapsed) ...[
-                  // ✅ Развёрнуто: показываем TextField для редактирования
                   TextField(
                     controller: _controllers[def.id],
                     maxLines: null,
@@ -167,7 +162,6 @@ class _GlossaryEntryTileState extends State<GlossaryEntryTile> {
                     },
                   ),
                 ] else ...[
-                  // ✅ Свёрнуто: показываем первую строку с многоточием
                   GestureDetector(
                     onTap: () => widget.onToggleDefinition(def.id),
                     child: Container(
@@ -186,7 +180,6 @@ class _GlossaryEntryTileState extends State<GlossaryEntryTile> {
                   ),
                 ],
                 
-                // ✅ Кнопка удаления
                 Align(
                   alignment: Alignment.centerRight,
                   child: IconButton(
