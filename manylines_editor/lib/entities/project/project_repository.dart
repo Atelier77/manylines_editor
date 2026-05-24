@@ -9,6 +9,7 @@ class ProjectRepository extends ChangeNotifier {
   Project? _selectedProject;
   bool _isGraphView = false;
   bool _isGlossaryPanelOpen = false;
+  bool _isEditingGlossary = false;
   String? _highlightedGlossaryTermId;
 
   List<Project> get projects => _projects;
@@ -16,6 +17,8 @@ class ProjectRepository extends ChangeNotifier {
   bool get isGraphView => _isGraphView;
   bool get isGlossaryPanelOpen => _isGlossaryPanelOpen;
   String? get highlightedGlossaryTermId => _highlightedGlossaryTermId;
+  bool get isEditingGlossary => _isEditingGlossary;
+
 
   void addProject(String name) {
     _projects.add(Project(
@@ -138,7 +141,6 @@ void reorderPinnedDocuments(int oldIndex, int newIndex) {
       
       if (def != null) {
         def.text = newText;
-        notifyListeners();
         return;
       }
     }
@@ -215,5 +217,14 @@ void reorderPinnedDocuments(int oldIndex, int newIndex) {
         notifyListeners();
       }
     });
+  }
+
+  void startGlossaryEditing() {
+    _isEditingGlossary = true;
+  }
+
+  void stopGlossaryEditing() {
+    _isEditingGlossary = false;
+    notifyListeners();
   }
 }

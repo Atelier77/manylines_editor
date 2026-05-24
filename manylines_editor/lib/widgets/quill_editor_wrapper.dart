@@ -82,10 +82,17 @@ class _QuillEditorWrapperState extends State<QuillEditorWrapper> {
       return;
     }
     
+    final projectRepo = _projectRepo;
+    if (projectRepo != null && projectRepo.isEditingGlossary) {
+      return;
+    }
+    
     _highlightDebounceTimer?.cancel();
     _highlightDebounceTimer = Timer(const Duration(milliseconds: 500), () {
       if (mounted && !_isDisposed && _controller != null) {
-        _applyGlossaryHighlights();
+        if (projectRepo == null || !projectRepo.isEditingGlossary) {
+          _applyGlossaryHighlights();
+        }
       }
     });
   }
@@ -93,14 +100,16 @@ class _QuillEditorWrapperState extends State<QuillEditorWrapper> {
   void _applyGlossaryHighlights() {
     if (_isApplyingHighlights || _controller == null || _isDisposed || !mounted) return;
     
+    // ✅ Финальная проверка — не редактирует ли пользователь глоссарий
+    final projectRepo = _projectRepo;
+    if (projectRepo != null && projectRepo.isEditingGlossary) return;
+    
     _isApplyingHighlights = true;
     
     try {
       GlossaryHighlightFeature.clearHighlights(_controller!);
       
-      final projectRepo = _projectRepo;
       final settingRepo = _settingRepo;
-      
       if (projectRepo == null || settingRepo == null) return;
       
       final isDarkMode = settingRepo.isDarkMode;
@@ -128,6 +137,9 @@ class _QuillEditorWrapperState extends State<QuillEditorWrapper> {
         projectRepo,
       );
       
+      if (opened) {
+        debugPrint('✅ Глоссарий открыт по двойному клику на термин');
+      }
     } catch (e) {
       debugPrint('Ошибка обработки двойного клика: $e');
     }
