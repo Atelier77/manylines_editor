@@ -4,10 +4,7 @@ import '../document/document.dart';
 import '../glossary_entry/glossary_entry.dart';
 
 class ProjectRepository extends ChangeNotifier {
-  final List<Project> _projects = [
-    Project(id: 'p1', name: 'Project 1', documents: []),
-    Project(id: 'p2', name: 'Project 2', documents: []),
-  ];
+  final List<Project> _projects = [];
 
   Project? _selectedProject;
   bool _isGraphView = false;
@@ -46,23 +43,29 @@ class ProjectRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  void reorderPinnedDocuments(int oldIndex, int newIndex) {
-    if (_selectedProject == null) return;
-    
-    final pinnedDocs = _selectedProject!.pinnedDocuments;
-    if (newIndex > oldIndex) newIndex -= 1;
-    
-    final doc = pinnedDocs.removeAt(oldIndex);
-    final targetDoc = pinnedDocs[newIndex];
-    
-    final docMainIndex = _selectedProject!.documents.indexOf(doc);
-    final targetMainIndex = _selectedProject!.documents.indexOf(targetDoc);
-    
-    _selectedProject!.documents.removeAt(docMainIndex);
-    _selectedProject!.documents.insert(targetMainIndex, doc);
-    
-    notifyListeners();
-  }
+void reorderPinnedDocuments(int oldIndex, int newIndex) {
+  if (_selectedProject == null) return;
+  
+  final pinnedDocs = _selectedProject!.pinnedDocuments;
+  
+  if (pinnedDocs.isEmpty) return;
+  
+  if (oldIndex < 0 || oldIndex >= pinnedDocs.length) return;
+  if (newIndex < 0 || newIndex >= pinnedDocs.length) return;
+  
+  if (newIndex > oldIndex) newIndex -= 1;
+  
+  final doc = pinnedDocs.removeAt(oldIndex);
+  final targetDoc = pinnedDocs[newIndex];
+  
+  final docMainIndex = _selectedProject!.documents.indexOf(doc);
+  final targetMainIndex = _selectedProject!.documents.indexOf(targetDoc);
+  
+  _selectedProject!.documents.removeAt(docMainIndex);
+  _selectedProject!.documents.insert(targetMainIndex, doc);
+  
+  notifyListeners();
+}
 
   void toggleViewMode() {
     _isGraphView = !_isGraphView;
