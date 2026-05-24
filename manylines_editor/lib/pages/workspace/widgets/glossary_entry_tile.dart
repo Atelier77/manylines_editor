@@ -32,6 +32,7 @@ class GlossaryEntryTile extends StatefulWidget {
 class _GlossaryEntryTileState extends State<GlossaryEntryTile> {
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, FocusNode> _focusNodes = {};
+  bool _hasFocus = false;
 
   @override
   void initState() {
@@ -39,6 +40,25 @@ class _GlossaryEntryTileState extends State<GlossaryEntryTile> {
     for (var def in widget.entry.definitions) {
       _controllers[def.id] = TextEditingController(text: def.text);
       _focusNodes[def.id] = FocusNode();
+    }
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (var node in _focusNodes.values) {
+        node.addListener(_onFocusChange);
+      }
+    });
+  }
+
+  void _onFocusChange() {
+    final projectRepo = context.read<ProjectRepository>();
+    final hasFocus = _focusNodes.values.any((node) => node.hasFocus);
+    
+    if (hasFocus && !_hasFocus) {
+      _hasFocus = true;
+      projectRepo.startGlossaryEditing();
+    } else if (!hasFocus && _hasFocus) {
+      _hasFocus = false;
+      projectRepo.stopGlossaryEditing();
     }
   }
 
@@ -49,8 +69,10 @@ class _GlossaryEntryTileState extends State<GlossaryEntryTile> {
       if (!_controllers.containsKey(def.id)) {
         _controllers[def.id] = TextEditingController(text: def.text);
         _focusNodes[def.id] = FocusNode();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _focusNodes[def.id]?.addListener(_onFocusChange);
+        });
       }
-      // ✅ Обновляем текст только если фокус не активен
       else if (_controllers[def.id]!.text != def.text && !_focusNodes[def.id]!.hasFocus) {
         _controllers[def.id]!.text = def.text;
       }
@@ -59,11 +81,12 @@ class _GlossaryEntryTileState extends State<GlossaryEntryTile> {
 
   @override
   void dispose() {
+    for (var node in _focusNodes.values) {
+      node.removeListener(_onFocusChange);
+      node.dispose();
+    }
     for (var controller in _controllers.values) {
       controller.dispose();
-    }
-    for (var node in _focusNodes.values) {
-      node.dispose();
     }
     super.dispose();
   }
@@ -74,8 +97,8 @@ class _GlossaryEntryTileState extends State<GlossaryEntryTile> {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: widget.isDarkMode 
-                ? const Color.fromARGB(255, 255, 255, 255) 
+            color: widget.isDarkMode
+                ? const Color.fromARGB(255, 255, 255, 255)
                 : const Color(0xFF603D2E),
             width: 3,
           ),
@@ -172,12 +195,6 @@ class _GlossaryEntryTileState extends State<GlossaryEntryTile> {
                       fillColor: widget.isDarkMode ? Colors.grey[800] : Colors.white,
                       contentPadding: const EdgeInsets.all(12),
                     ),
-                    onTap: () {
-                      context.read<ProjectRepository>().startGlossaryEditing();
-                    },
-                    onEditingComplete: () {
-                      context.read<ProjectRepository>().stopGlossaryEditing();
-                    },
                     onChanged: (value) {
                       widget.onUpdateDefinition(def.id, value);
                     },
